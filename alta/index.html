@@ -77,11 +77,6 @@
       <input id="reintegro" type="text" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="0 si no te reintegra">
     </fieldset>
 
-    <fieldset>
-      <legend>Facturas que NO se deducen</legend>
-      <label for="no_deducibles">Una por línea: CUIT del que factura y por qué (ej. cursos, maestría, trabajo)</label>
-      <textarea id="no_deducibles" class="lista" placeholder="30-12345678-1 Maestría"></textarea>
-    </fieldset>
 
     <fieldset>
       <legend>Familia a cargo</legend>
@@ -180,12 +175,6 @@ function armarPerfil() {
     if (r === null) throw new Error("El reintegro tiene que ser un número.");
     perfil.honorarios = { reintegro_por_sesion: r };
   }
-  const emisores = lineas("no_deducibles").map((l) => {
-    const cuit = cuitValido(l.split(/\s+/)[0]);
-    if (!cuit) throw new Error(`CUIT inválido en "Facturas que NO se deducen": ${l}`);
-    return { cuit, motivo: l.split(/\s+/).slice(1).join(" ") || "No deducible" };
-  });
-  if (emisores.length) perfil.blacklist_emisores = emisores;
   const cargas = lineas("hijos").map((l) => {
     const cuil = cuitValido(l.split(/\s+/)[0]);
     const nac = fecha(l);
