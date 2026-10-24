@@ -24,6 +24,11 @@
   #listo { display:none; }
   textarea { width:100%; height:7rem; font:12px monospace; border:1px solid var(--borde); border-radius:8px; background:transparent; color:var(--texto); }
   small { color:var(--suave); }
+  fieldset { border:1px solid var(--borde); border-radius:8px; margin:1.2rem 0 0; padding:.2rem .9rem .9rem; }
+  legend { font-weight:700; padding:0 .3rem; }
+  .dias { display:flex; flex-wrap:wrap; gap:.4rem .9rem; }
+  .dias label { margin:0; font-weight:400; }
+  textarea.lista { height:4.5rem; font:inherit; padding:.5rem; }
 </style>
 </head>
 <body>
@@ -43,6 +48,49 @@
     <label for="mail">Mail (opcional, para avisos futuros)</label>
     <input id="mail" type="email" autocomplete="email" maxlength="80">
     <label class="check"><input id="inmueble" type="checkbox"> Tengo algún inmueble a mi nombre</label>
+
+    <p>Lo que sigue es opcional: completalo solo si te corresponde. Con esto el bot carga todo sin tener que preguntarte.</p>
+
+    <fieldset>
+      <legend>Empleada doméstica</legend>
+      <label for="dom_cuil">CUIL de la empleada</label>
+      <input id="dom_cuil" type="text" inputmode="numeric" autocomplete="off" maxlength="13">
+      <label for="dom_nombre">Nombre</label>
+      <input id="dom_nombre" type="text" autocomplete="off" maxlength="80">
+      <label for="dom_valor_dia">Cuánto le pagás por día ($)</label>
+      <input id="dom_valor_dia" type="text" inputmode="decimal" autocomplete="off" maxlength="12">
+      <label>Qué días va</label>
+      <div id="dom_dias" class="dias">
+        <label><input type="checkbox" value="lunes"> Lun</label>
+        <label><input type="checkbox" value="martes"> Mar</label>
+        <label><input type="checkbox" value="miercoles"> Mié</label>
+        <label><input type="checkbox" value="jueves"> Jue</label>
+        <label><input type="checkbox" value="viernes"> Vie</label>
+        <label><input type="checkbox" value="sabado"> Sáb</label>
+        <label><input type="checkbox" value="domingo"> Dom</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Médicos y psicólogos</legend>
+      <label for="reintegro">Si tu prepaga te reintegra parte de cada sesión, ¿cuánto por sesión? ($)</label>
+      <input id="reintegro" type="text" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="0 si no te reintegra">
+    </fieldset>
+
+    <fieldset>
+      <legend>Facturas que NO se deducen</legend>
+      <label for="no_deducibles">Una por línea: CUIT del que factura y por qué (ej. cursos, maestría, trabajo)</label>
+      <textarea id="no_deducibles" class="lista" placeholder="30-12345678-1 Maestría"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Familia a cargo</legend>
+      <label for="hijos">Hijos: uno por línea, CUIL y fecha de nacimiento</label>
+      <textarea id="hijos" class="lista" placeholder="20-45678901-4 01/03/2015"></textarea>
+      <label for="conyuge">Cónyuge a cargo (si no trabaja): CUIL y fecha de nacimiento</label>
+      <input id="conyuge" type="text" autocomplete="off" maxlength="40" placeholder="27-12345678-9 15/06/1990">
+      <small>Si ya los tenés cargados en SiRADIG, dejalo vacío.</small>
+    </fieldset>
     <label class="check"><input id="autorizo" type="checkbox"> <span>Autorizo al servicio a entrar a mi ARCA con mi clave fiscal, leer mis comprobantes y presentar el formulario F.572 en SiRADIG en mi nombre, siempre con revisión previa de Lucas. Leí los <a href="https://loskuri.github.io/siradig-bot-legal/" target="_blank" rel="noopener">términos</a>.</span></label>
     <div id="error" role="alert"></div>
     <button id="generar" type="button">Mandar a Lucas por WhatsApp</button>
@@ -104,6 +152,56 @@ function cuitValido(valor) {
 }
 const $ = (id) => document.getElementById(id);
 let enlace = "";
+function numero(texto) {
+  const s = texto.replace(/[^\d,.]/g, "");
+  if (!s) return null;
+  const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s);
+  return Number.isFinite(n) ? n : null;
+}
+function fecha(texto) {
+  const m = texto.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : null;
+}
+function lineas(id) { return $(id).value.split("\n").map((l) => l.trim()).filter(Boolean); }
+function armarPerfil() {
+  const perfil = {};
+  if ($("dom_cuil").value.trim()) {
+    const cuil = cuitValido($("dom_cuil").value);
+    if (!cuil) throw new Error("El CUIL de la empleada no es válido.");
+    const dom = { cuil };
+    if ($("dom_nombre").value.trim()) dom.nombre = $("dom_nombre").value.trim();
+    const valor = numero($("dom_valor_dia").value);
+    if (valor) dom.valor_dia = valor;
+    dom.dias_semana = [...document.querySelectorAll("#dom_dias input:checked")].map((c) => c.value);
+    perfil.personal_domestico = dom;
+  }
+  if ($("reintegro").value.trim()) {
+    const r = numero($("reintegro").value);
+    if (r === null) throw new Error("El reintegro tiene que ser un número.");
+    perfil.honorarios = { reintegro_por_sesion: r };
+  }
+  const emisores = lineas("no_deducibles").map((l) => {
+    const cuit = cuitValido(l.split(/\s+/)[0]);
+    if (!cuit) throw new Error(`CUIT inválido en "Facturas que NO se deducen": ${l}`);
+    return { cuit, motivo: l.split(/\s+/).slice(1).join(" ") || "No deducible" };
+  });
+  if (emisores.length) perfil.blacklist_emisores = emisores;
+  const cargas = lineas("hijos").map((l) => {
+    const cuil = cuitValido(l.split(/\s+/)[0]);
+    const nac = fecha(l);
+    if (!cuil || !nac) throw new Error(`Revisá la línea de hijos: ${l}`);
+    return { cuil, vinculo: "hijo", fecha_nacimiento: nac };
+  });
+  if ($("conyuge").value.trim()) {
+    const v = $("conyuge").value.trim();
+    const cuil = cuitValido(v.split(/\s+/)[0]);
+    const nac = fecha(v);
+    if (!cuil || !nac) throw new Error("Revisá el CUIL y la fecha del cónyuge.");
+    cargas.push({ cuil, vinculo: "conyuge", fecha_nacimiento: nac });
+  }
+  if (cargas.length) perfil.cargas_de_familia = cargas;
+  return perfil;
+}
 $("generar").addEventListener("click", async () => {
   const error = (t) => { $("error").textContent = t; };
   error("");
@@ -115,10 +213,12 @@ $("generar").addEventListener("click", async () => {
   if (!clave) return error("Falta la clave fiscal.");
   if (clave !== $("clave2").value) return error("Las claves no coinciden.");
   if (!$("autorizo").checked) return error("Para seguir tenés que autorizar.");
+  let perfil;
+  try { perfil = armarPerfil(); } catch (e) { return error(e.message); }
   try {
     const codigo = await sellar($("publica").textContent, {
       n: nombre, cuit, clave, mail: $("mail").value.trim(), inm: $("inmueble").checked,
-      tv: "2026-10-24", ts: Math.floor(Date.now() / 1000),
+      tv: "2026-10-24", ts: Math.floor(Date.now() / 1000), perfil,
     });
     $("clave").value = ""; $("clave2").value = "";
     $("codigo").value = codigo;
