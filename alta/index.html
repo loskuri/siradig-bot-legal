@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Alta SiRADIG</title>
+<style>
+  :root { --fondo:#f6f7f9; --texto:#1c1f24; --suave:#5b6370; --borde:#d5d9e0; --acento:#1a7f4b; --error:#b42318; }
+  @media (prefers-color-scheme: dark) { :root { --fondo:#15171a; --texto:#eceef1; --suave:#a2a9b4; --borde:#353a42; --acento:#3fb877; --error:#f97066; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--fondo); color:var(--texto); font:16px/1.5 system-ui, sans-serif; }
+  main { max-width:480px; margin:0 auto; }
+  h1 { font-size:1.4rem; margin:.2rem 0 .6rem; }
+  p, li { color:var(--suave); }
+  label { display:block; margin:.9rem 0 .25rem; font-weight:600; }
+  input[type=text], input[type=password], input[type=email] { width:100%; padding:.7rem; font-size:1rem; border:1px solid var(--borde); border-radius:8px; background:transparent; color:var(--texto); }
+  .check { display:flex; gap:.6rem; align-items:flex-start; margin-top:.9rem; font-weight:400; }
+  .check input { margin-top:.3rem; }
+  button { width:100%; margin-top:1rem; padding:.85rem; font-size:1rem; font-weight:600; border:0; border-radius:8px; background:var(--acento); color:#fff; }
+  button.secundario { background:transparent; color:var(--acento); border:1px solid var(--acento); }
+  #error { color:var(--error); min-height:1.5rem; margin-top:.6rem; }
+  #listo { display:none; }
+  textarea { width:100%; height:7rem; font:12px monospace; border:1px solid var(--borde); border-radius:8px; background:transparent; color:var(--texto); }
+  small { color:var(--suave); }
+</style>
+</head>
+<body>
+<main>
+  <section id="formulario">
+    <h1>Alta en el bot de SiRADIG</h1>
+    <p>El bot carga tus deducciones de Ganancias en SiRADIG para que te retengan menos del sueldo. Lucas revisa cada carga antes de presentarla.</p>
+    <p><strong>Tu clave fiscal se cifra en este teléfono</strong> antes de salir: nadie la ve en el camino (tampoco WhatsApp). Solo el bot la descifra, en su servidor, para entrar a tu ARCA; nunca se muestra ni se guarda sin cifrar.</p>
+    <label for="nombre">Nombre y apellido</label>
+    <input id="nombre" type="text" autocomplete="name" maxlength="80">
+    <label for="cuit">CUIT / CUIL</label>
+    <input id="cuit" type="text" inputmode="numeric" autocomplete="off" maxlength="13" placeholder="20-12345678-9">
+    <label for="clave">Clave fiscal</label>
+    <input id="clave" type="password" autocomplete="new-password" maxlength="64">
+    <label for="clave2">Repetí la clave fiscal</label>
+    <input id="clave2" type="password" autocomplete="new-password" maxlength="64">
+    <label for="mail">Mail (opcional, para avisos futuros)</label>
+    <input id="mail" type="email" autocomplete="email" maxlength="80">
+    <label class="check"><input id="inmueble" type="checkbox"> Tengo algún inmueble a mi nombre</label>
+    <label class="check"><input id="autorizo" type="checkbox"> <span>Autorizo al servicio a entrar a mi ARCA con mi clave fiscal, leer mis comprobantes y presentar el formulario F.572 en SiRADIG en mi nombre, siempre con revisión previa de Lucas. Leí los <a href="https://loskuri.github.io/siradig-bot-legal/" target="_blank" rel="noopener">términos</a>.</span></label>
+    <div id="error" role="alert"></div>
+    <button id="generar" type="button">Mandar a Lucas por WhatsApp</button>
+    <p><small>Huella de seguridad: 8b0b 7b53 e4a9 7a1b</small></p>
+  </section>
+  <section id="listo">
+    <h1>¡Listo!</h1>
+    <p>Si WhatsApp no se abrió, copiá este código y mandáselo a Lucas:</p>
+    <textarea id="codigo" readonly></textarea>
+    <button id="whatsapp" type="button">Abrir WhatsApp</button>
+    <button id="copiar" type="button" class="secundario">Copiar código</button>
+  </section>
+</main>
+<script id="publica" type="text/plain">-----BEGIN PUBLIC KEY-----
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEApez7kHfNrih45vvMSOFk
+qm4LjgSVCMa+HcoFyzUJV7A6elJGbVV01FXEtn53z487TVb/pzGxX8TN2Ihoe4CB
+55x+2FBhob7UUHRSMmEaQin2ng2hNqejrp9g9kDoCJp7EmgZjIOcjdkWG+TlCY2A
+Je2ElCGBH657KwdLNvqKLeJi0ting4QxkkZfDwgYoxF1Sa6oc8X3C7KUTafXWtUs
+agymhC52rMiKw+o9j1+8zHGaydmZjjoDso0tnhf1qmjANkqh6HA3fk94ffQdZJNe
+kob9o/lhmENrJlQ6ShRQd08GihEcOIOnGMQhP65BrB4hnji/cIQAf5AWCVi/+V+O
+1mJ9gwNvV2diI/hSpjYKjAvFgxi1PGJins/tImAnN2EijzdXF5dct/ACg80S5pPA
+Gn5H3dM+zdcGxoeoTfOSbG61TFhSSHMmVjVzuYFPZkTREhA/9Kf0H6mJuZmwqhHj
+MsYvZvZuXmXThbrn03SHpOV6n6z6c0bgK5vVtVAGMxbJAgMBAAE=
+-----END PUBLIC KEY-----</script>
+<script id="sellar">
+// Mismo formato que siradig_bot/sobre.py: RSA-OAEP(SHA-256) envuelve una clave AES-256-GCM.
+const PREFIJO = "SRDG1:";
+function b64(bytes) {
+  let s = "";
+  for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
+  return btoa(s);
+}
+function pemADer(pem) {
+  const cuerpo = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  return Uint8Array.from(atob(cuerpo), (c) => c.charCodeAt(0));
+}
+async function sellar(publicaPem, datos) {
+  const sutil = globalThis.crypto.subtle;
+  const publica = await sutil.importKey("spki", pemADer(publicaPem), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
+  const aes = await sutil.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+  const contenido = new TextEncoder().encode(JSON.stringify(datos));
+  const cifrado = await sutil.encrypt({ name: "AES-GCM", iv, additionalData: new TextEncoder().encode("SRDG1") }, aes, contenido);
+  const envuelta = await sutil.encrypt({ name: "RSA-OAEP" }, publica, await sutil.exportKey("raw", aes));
+  const sobre = JSON.stringify({ k: b64(envuelta), iv: b64(iv), c: b64(cifrado) });
+  return PREFIJO + b64(new TextEncoder().encode(sobre)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+</script>
+<script>
+const PESOS = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+function cuitValido(valor) {
+  const d = valor.replace(/\D/g, "");
+  if (d.length !== 11 || !["20", "23", "24", "27", "30", "33", "34"].includes(d.slice(0, 2))) return null;
+  let total = 0;
+  for (let i = 0; i < 10; i++) total += Number(d[i]) * PESOS[i];
+  let dv = 11 - (total % 11);
+  if (dv === 11) dv = 0;
+  return dv !== 10 && dv === Number(d[10]) ? d : null;
+}
+const $ = (id) => document.getElementById(id);
+let enlace = "";
+$("generar").addEventListener("click", async () => {
+  const error = (t) => { $("error").textContent = t; };
+  error("");
+  const nombre = $("nombre").value.trim();
+  const cuit = cuitValido($("cuit").value);
+  const clave = $("clave").value;
+  if (!nombre) return error("Falta tu nombre.");
+  if (!cuit) return error("El CUIT no es válido.");
+  if (!clave) return error("Falta la clave fiscal.");
+  if (clave !== $("clave2").value) return error("Las claves no coinciden.");
+  if (!$("autorizo").checked) return error("Para seguir tenés que autorizar.");
+  try {
+    const codigo = await sellar($("publica").textContent, {
+      n: nombre, cuit, clave, mail: $("mail").value.trim(), inm: $("inmueble").checked,
+      tv: "2026-10-24", ts: Math.floor(Date.now() / 1000),
+    });
+    $("clave").value = ""; $("clave2").value = "";
+    $("codigo").value = codigo;
+    enlace = "https://wa.me/5491158708961?text=" + encodeURIComponent(codigo);
+    $("formulario").style.display = "none";
+    $("listo").style.display = "block";
+    window.location.href = enlace;
+  } catch (e) {
+    error("Tu navegador no pudo cifrar los datos. Probá con Chrome o Safari actualizados.");
+  }
+});
+$("whatsapp").addEventListener("click", () => { if (enlace) window.location.href = enlace; });
+$("copiar").addEventListener("click", async () => {
+  $("codigo").select();
+  try { await navigator.clipboard.writeText($("codigo").value); $("copiar").textContent = "Copiado"; } catch (e) { document.execCommand("copy"); }
+});
+</script>
+</body>
+</html>
